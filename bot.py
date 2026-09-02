@@ -7,8 +7,8 @@ from telegram import Bot
 # ==========================================
 # ⚙️ CONFIGURATION
 # ==========================================
-BOT_TOKEN = "8630297168:AAGqMdxODDoGXuVO9AQcIceQOt6-MaRutc4"  # 👈 ඔයාගේ Telegram Bot Token එක
-CHANNEL_ID = -1003962679297                  # 👈 Channel ID එක
+BOT_TOKEN = "8630297168:AAGqMdxODDoGXuVO9AQcIceQOt6-MaRutc4"
+CHANNEL_ID = -1003962679297
 SITE_API_URL = "https://tradex.forex/api/update-package-profit"
 BOT_SECRET_KEY = "TRADEX_SECRET_BOT_KEY_2026"
 
@@ -16,7 +16,7 @@ IMAGE_1 = "signal1.jpg.png"
 IMAGE_2 = "signal2.jpg.png"
 IMAGE_3 = "signal3.jpg.png"
 
-# 🔄 Entry time (පැය 2) ඉවර වුණාම Auto-Reset වන පරණ Standard Profit % values:
+# 🔄 Entry time (පැය 2) ඉවර වුණාම Auto-Reset වන Standard Profit % values:
 RESET_PROFIT_MAP = {
     "1": 0.7,  # SOL Package Standard %
     "2": 1.0,  # Gold Package Standard %
@@ -69,7 +69,7 @@ Trade Open Two Hours...."""
 
 CONFIGS = {
     # 🔴 SOL (Package ID: 1)
-    "1_warning": {"type": "warning", "image": IMAGE_1},
+    "1_warning": {"type": "warning"},
     "1_main": {
         "type": "main", 
         "image": IMAGE_1,
@@ -80,7 +80,7 @@ CONFIGS = {
     "1_reset": {"type": "reset", "signal_id": "1"},
 
     # 🟡 Gold (Package ID: 2)
-    "2_warning": {"type": "warning", "image": IMAGE_2},
+    "2_warning": {"type": "warning"},
     "2_main": {
         "type": "main", 
         "image": IMAGE_2,
@@ -91,7 +91,7 @@ CONFIGS = {
     "2_reset": {"type": "reset", "signal_id": "2"},
 
     # 🔵 BTC (Package ID: 3)
-    "3_warning": {"type": "warning", "image": IMAGE_3},
+    "3_warning": {"type": "warning"},
     "3_main": {
         "type": "main", 
         "image": IMAGE_3,
@@ -136,23 +136,35 @@ async def send_telegram_post(key):
 
     bot = Bot(token=BOT_TOKEN)
 
+    # 🚨 WARNING MESSAGE (ONLY TEXT - NO PHOTO)
     if cfg["type"] == "warning":
-        caption_text = WARNING_TEMPLATE
-    else:
-        # Profit Randomization (0.9% - 2.0%)
-        random_profit = round(random.uniform(0.9, 2.0), 1)
-        caption_text = get_main_signal_text(
-            pair=cfg["pair"],
-            open_time=cfg["open_time"],
-            start_time=cfg["start_time"],
-            profit=random_profit
-        )
+        try:
+            await bot.send_message(
+                chat_id=CHANNEL_ID,
+                text=WARNING_TEMPLATE,
+                read_timeout=60,
+                write_timeout=60,
+                connect_timeout=60
+            )
+            print(f"Warning Post [{key}] Sent Successfully (Text Only)!")
+        except Exception as e:
+            print(f"Telegram Post Error [{key}]: {e}")
+        return
 
-        # Site DB Auto-Sync (Live Profit Setting)
-        signal_num = key.split('_')[0]
-        sync_site_profit(signal_num, random_profit)
+    # 📊 MAIN SIGNAL MESSAGE (WITH IMAGE + SITE SYNC)
+    random_profit = round(random.uniform(0.9, 2.0), 1)
+    caption_text = get_main_signal_text(
+        pair=cfg["pair"],
+        open_time=cfg["open_time"],
+        start_time=cfg["start_time"],
+        profit=random_profit
+    )
 
-    # Send to Telegram Channel (Forced UTF-8 + High Timeout Limits)
+    # Site DB Auto-Sync (Live Profit Setting)
+    signal_num = key.split('_')[0]
+    sync_site_profit(signal_num, random_profit)
+
+    # Send Photo + Text to Telegram Channel
     try:
         with open(cfg["image"], 'rb') as photo:
             await bot.send_photo(
@@ -164,7 +176,7 @@ async def send_telegram_post(key):
                 connect_timeout=60,
                 pool_timeout=60
             )
-        print(f"Post [{key}] Sent Successfully!")
+        print(f"Main Signal Post [{key}] Sent Successfully with Image!")
     except Exception as e:
         print(f"Telegram Post Error [{key}]: {e}")
 
