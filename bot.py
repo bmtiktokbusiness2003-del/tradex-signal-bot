@@ -12,9 +12,9 @@ CHANNEL_ID = -1003962679297                  # 👈 Channel ID එක
 SITE_API_URL = "https://tradex.forex/api/update-package-profit"
 BOT_SECRET_KEY = "TRADEX_SECRET_BOT_KEY_2026"
 
-IMAGE_1 = "signal1.jpg"
-IMAGE_2 = "signal2.jpg"
-IMAGE_3 = "signal3.jpg"
+IMAGE_1 = "signal1.jpg.png"
+IMAGE_2 = "signal2.jpg.png"
+IMAGE_3 = "signal3.jpg.png"
 
 # ==========================================
 # 📄 EXACT TEMPLATES
