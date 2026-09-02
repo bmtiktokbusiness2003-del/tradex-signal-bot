@@ -7,7 +7,7 @@ from telegram import Bot
 # ==========================================
 # ⚙️ CONFIGURATION
 # ==========================================
-BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN_HERE"  # 👈 ඔයාගේ Bot Token එක මෙතැනට දාන්න
+BOT_TOKEN = "8630297168:AAGqMdxODDoGXuVO9AQcIceQOt6-MaRutc4"  # 👈 ඔයාගේ Bot Token එක මෙතැනට දාන්න
 CHANNEL_ID = -1003962679297                  # 👈 Channel ID එක
 SITE_API_URL = "https://tradex.forex/api/update-package-profit"
 BOT_SECRET_KEY = "TRADEX_SECRET_BOT_KEY_2026"
