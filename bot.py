@@ -7,7 +7,7 @@ from telegram import Bot
 # ==========================================
 # ⚙️ CONFIGURATION
 # ==========================================
-BOT_TOKEN = "8630297168:AAGqMdxODDoGXuVO9AQcIceQOt6-MaRutc4"  # 👈 ඔයාගේ Bot Token එක මෙතැනට දාන්න
+BOT_TOKEN = "8630297168:AAGqMdxODDoGXuVO9AQcIceQOt6-MaRutc4"  # 👈 ඔයාගේ Bot Token එක
 CHANNEL_ID = -1003962679297                  # 👈 Channel ID එක
 SITE_API_URL = "https://tradex.forex/api/update-package-profit"
 BOT_SECRET_KEY = "TRADEX_SECRET_BOT_KEY_2026"
@@ -17,7 +17,7 @@ IMAGE_2 = "signal2.jpg.png"
 IMAGE_3 = "signal3.jpg.png"
 
 # ==========================================
-# 📄 EXACT TEMPLATES
+# 📄 TEMPLATES & DYNAMIC PAIRS
 # ==========================================
 WARNING_TEMPLATE = """🚨 IMPORTANT WARNING — COPY TRADE SIGNAL ALERT — 1 HOUR TO GO!
 
@@ -38,7 +38,7 @@ Check your account → Prepare your capital → Stay connected → WAIT FOR THE 
 
 2-HOUR ENTRY WINDOW — DON’T MISS IT!"""
 
-def get_main_signal_text(open_time, start_time, profit):
+def get_main_signal_text(pair, open_time, start_time, profit):
     return f"""GET READY TRADEX COPY TRADING SIGNAL
 
 Trade Open Time 
@@ -47,7 +47,7 @@ Trade Open Time
 ━━━━━━━━━━━━━━━━━━
 TRADING SIGNAL
 ━━━━━━━━━━━━━━━━━━
-Trading Pair: BTC (Bitcoin)
+Trading Pair: {pair}
 Copy Trade Starting Time: {start_time}
 Expected Profit: {profit}%
 
@@ -63,19 +63,25 @@ Trade Open Two Hours...."""
 CONFIGS = {
     "1_warning": {"type": "warning", "image": IMAGE_1},
     "1_main": {
-        "type": "main", "image": IMAGE_1,
+        "type": "main", 
+        "image": IMAGE_1,
+        "pair": "SOL (Solana)",
         "open_time": "07:00 AM UTC To 09:00 AM UTC",
         "start_time": "07:00 AM UTC"
     },
     "2_warning": {"type": "warning", "image": IMAGE_2},
     "2_main": {
-        "type": "main", "image": IMAGE_2,
+        "type": "main", 
+        "image": IMAGE_2,
+        "pair": "XAU/USD (Gold)",
         "open_time": "10:00 AM UTC To 12:00 PM UTC",
         "start_time": "10:00 AM UTC"
     },
     "3_warning": {"type": "warning", "image": IMAGE_3},
     "3_main": {
-        "type": "main", "image": IMAGE_3,
+        "type": "main", 
+        "image": IMAGE_3,
+        "pair": "BTC (Bitcoin)",
         "open_time": "02:00 PM UTC To 04:00 PM UTC",
         "start_time": "02:00 PM UTC"
     }
@@ -92,15 +98,16 @@ async def send_telegram_post(key):
     if cfg["type"] == "warning":
         caption_text = WARNING_TEMPLATE
     else:
-        # Profit Auto-Randomization (0.9% - 2.8% අතර)
+        # Profit Randomization (0.9% - 2.8% අතර)
         random_profit = round(random.uniform(0.9, 2.8), 1)
         caption_text = get_main_signal_text(
+            pair=cfg["pair"],
             open_time=cfg["open_time"],
             start_time=cfg["start_time"],
             profit=random_profit
         )
 
-        # 🌐 Site DB Auto-Sync (Main Signal එක යන වෙලාවට)
+        # 🌐 Site DB Auto-Sync (1 -> SOL, 2 -> XAU/USD, 3 -> BTC)
         signal_num = key.split('_')[0]
         try:
             headers = {'X-BOT-SECRET': BOT_SECRET_KEY}
