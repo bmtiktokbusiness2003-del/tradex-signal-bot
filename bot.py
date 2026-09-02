@@ -17,7 +17,7 @@ IMAGE_2 = "signal2.jpg.png"
 IMAGE_3 = "signal3.jpg.png"
 
 # ==========================================
-# 📄 TEMPLATES & DYNAMIC PAIRS
+# 📄 TEMPLATES & DYNAMIC PAIRS WITH UTF-8 EMOJIS
 # ==========================================
 WARNING_TEMPLATE = """🚨 IMPORTANT WARNING — COPY TRADE SIGNAL ALERT — 1 HOUR TO GO!
 
@@ -39,20 +39,20 @@ Check your account → Prepare your capital → Stay connected → WAIT FOR THE 
 2-HOUR ENTRY WINDOW — DON’T MISS IT!"""
 
 def get_main_signal_text(pair, open_time, start_time, profit):
-    return f"""GET READY TRADEX COPY TRADING SIGNAL
+    return f"""🚨 GET READY TRADEX COPY TRADING SIGNAL
 
 Trade Open Time 
 {open_time}
 
 ━━━━━━━━━━━━━━━━━━
-TRADING SIGNAL
+📊 TRADING SIGNAL
 ━━━━━━━━━━━━━━━━━━
 Trading Pair: {pair}
 Copy Trade Starting Time: {start_time}
 Expected Profit: {profit}%
 
 ━━━━━━━━━━━━━━━━━━
-SIGNAL STATUS: ACTIVE
+⚡ SIGNAL STATUS: ACTIVE
 ━━━━━━━━━━━━━━━━━━
 
 TRADEX BROKERING & COPY TRADING
@@ -98,7 +98,7 @@ async def send_telegram_post(key):
     if cfg["type"] == "warning":
         caption_text = WARNING_TEMPLATE
     else:
-        # Profit Randomization (0.9% - 2.8% අතර)
+        # Profit Randomization (0.9% - 2.8%)
         random_profit = round(random.uniform(0.9, 2.8), 1)
         caption_text = get_main_signal_text(
             pair=cfg["pair"],
@@ -117,19 +117,23 @@ async def send_telegram_post(key):
         except Exception as e:
             print(f"Site Sync Error: {e}")
 
-    # Send to Telegram Channel
+    # Send to Telegram Channel (Forced UTF-8 Text)
     try:
         with open(cfg["image"], 'rb') as photo:
             await bot.send_photo(
                 chat_id=CHANNEL_ID,
                 photo=photo,
-                caption=caption_text
+                caption=caption_text.encode('utf-8').decode('utf-8')
             )
         print(f"Post [{key}] Sent Successfully!")
     except Exception as e:
         print(f"Telegram Post Error [{key}]: {e}")
 
 if __name__ == "__main__":
+    # Standard Output Encoding set to UTF-8
+    if sys.stdout.encoding != 'utf-8':
+        sys.stdout.reconfigure(encoding='utf-8')
+        
     if len(sys.argv) > 1:
         run_key = sys.argv[1]
         asyncio.run(send_telegram_post(run_key))
