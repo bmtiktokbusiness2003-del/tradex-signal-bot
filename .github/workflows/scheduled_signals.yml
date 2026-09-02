@@ -2,13 +2,27 @@ name: TradeX Lifetime Signal Automation
 
 on:
   schedule:
-    - cron: '0 6 * * *'   # 11:30 AM SLST (Signal 1 Warning)
-    - cron: '0 7 * * *'   # 12:30 PM SLST (Signal 1 Main)
-    - cron: '0 9 * * *'   # 02:30 PM SLST (Signal 2 Warning)
-    - cron: '0 10 * * *'  # 03:30 PM SLST (Signal 2 Main)
-    - cron: '0 13 * * *'  # 06:30 PM SLST (Signal 3 Warning)
-    - cron: '0 14 * * *'  # 07:30 PM SLST (Signal 3 Main)
+    # 🔴 SOL Signals & Reset
+    - cron: '0 6 * * *'   # 1_warning (11:30 AM SLST)
+    - cron: '0 7 * * *'   # 1_main (12:30 PM SLST)
+    - cron: '0 9 * * *'   # 1_reset (02:30 PM SLST)
+
+    # 🟡 Gold Signals & Reset
+    - cron: '0 9 * * *'   # 2_warning (02:30 PM SLST)
+    - cron: '0 10 * * *'  # 2_main (03:30 PM SLST)
+    - cron: '0 12 * * *'  # 2_reset (05:30 PM SLST)
+
+    # 🔵 BTC Signals & Reset
+    - cron: '0 13 * * *'  # 3_warning (06:30 PM SLST)
+    - cron: '0 14 * * *'  # 3_main (07:30 PM SLST)
+    - cron: '0 16 * * *'  # 3_reset (09:30 PM SLST)
+
   workflow_dispatch:
+    inputs:
+      signal_key:
+        description: 'Signal Key'
+        required: true
+        default: '3_main'
 
 jobs:
   run-signal:
@@ -20,29 +34,44 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.x'
 
       - name: Install Dependencies
         run: |
-          python -m pip install --upgrade pip
           pip install python-telegram-bot requests
 
       - name: Trigger Signal Event
         run: |
+          # UTC Hour එක අනුව අදාළ Signal එක ක්‍රියාත්මක කිරීම
           HOURS=$(date -u +'%H')
           
-          if [ "$HOURS" -eq "06" ]; then
-            python bot.py 1_warning
-          elif [ "$HOURS" -eq "07" ]; then
-            python bot.py 1_main
-          elif [ "$HOURS" -eq "09" ]; then
-            python bot.py 2_warning
-          elif [ "$HOURS" -eq "10" ]; then
-            python bot.py 2_main
-          elif [ "$HOURS" -eq "13" ]; then
-            python bot.py 3_warning
-          elif [ "$HOURS" -eq "14" ]; then
-            python bot.py 3_main
-          else
-            python bot.py 1_warning
-          fi
+          case $HOURS in
+            06)
+              python bot.py 1_warning
+              ;;
+            07)
+              python bot.py 1_main
+              ;;
+            09)
+              python bot.py 1_reset
+              python bot.py 2_warning
+              ;;
+            10)
+              python bot.py 2_main
+              ;;
+            12)
+              python bot.py 2_reset
+              ;;
+            13)
+              python bot.py 3_warning
+              ;;
+            14)
+              python bot.py 3_main
+              ;;
+            16)
+              python bot.py 3_reset
+              ;;
+            *)
+              python bot.py ${{ github.event.inputs.signal_key }}
+              ;;
+          esac
