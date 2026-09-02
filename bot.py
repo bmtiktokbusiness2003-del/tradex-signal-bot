@@ -98,8 +98,8 @@ async def send_telegram_post(key):
     if cfg["type"] == "warning":
         caption_text = WARNING_TEMPLATE
     else:
-        # Profit Randomization (0.9% - 2.8%)
-        random_profit = round(random.uniform(0.9, 2.8), 1)
+        # Profit Randomization (0.9% - 2.0% අතර විතරයි)
+        random_profit = round(random.uniform(0.9, 2.0), 1)
         caption_text = get_main_signal_text(
             pair=cfg["pair"],
             open_time=cfg["open_time"],
@@ -117,7 +117,7 @@ async def send_telegram_post(key):
         except Exception as e:
             print(f"Site Sync Error: {e}")
 
-    # Send to Telegram Channel (Forced UTF-8 Text)
+    # Send to Telegram Channel (UTF-8 Emojis Supported)
     try:
         with open(cfg["image"], 'rb') as photo:
             await bot.send_photo(
@@ -130,7 +130,6 @@ async def send_telegram_post(key):
         print(f"Telegram Post Error [{key}]: {e}")
 
 if __name__ == "__main__":
-    # Standard Output Encoding set to UTF-8
     if sys.stdout.encoding != 'utf-8':
         sys.stdout.reconfigure(encoding='utf-8')
         
