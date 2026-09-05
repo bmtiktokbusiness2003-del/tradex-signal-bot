@@ -18,9 +18,9 @@ IMAGE_3 = "signal3.jpg.png.png"
 
 # 🔄 Entry time (පැය 2) ඉවර වුණාම Auto-Reset වන Standard Profit % values:
 RESET_PROFIT_MAP = {
-    "1": 0.7,  # SOL Package Standard %
-    "2": 1.0,  # Gold Package Standard %
-    "3": 0.9   # BTC Package Standard %
+    1: 0.7,   # SOL Package Standard Default %
+    2: 1.0,   # Gold Package Standard Default %
+    3: 0.9    # BTC Package Standard Default %
 }
 
 # ==========================================
@@ -75,9 +75,10 @@ CONFIGS = {
         "image": IMAGE_1,
         "pair": "SOL (Solana)",
         "open_time": "07:00 AM UTC To 09:00 AM UTC",
-        "start_time": "07:00 AM UTC"
+        "start_time": "07:00 AM UTC",
+        "profit_range": (1.2, 1.8)
     },
-    "1_reset": {"type": "reset", "signal_id": "1"},
+    "1_reset": {"type": "reset", "signal_id": 1},
 
     # 🟡 Gold (Package ID: 2)
     "2_warning": {"type": "warning"},
@@ -86,9 +87,10 @@ CONFIGS = {
         "image": IMAGE_2,
         "pair": "XAU/USD (Gold)",
         "open_time": "10:00 AM UTC To 12:00 PM UTC",
-        "start_time": "10:00 AM UTC"
+        "start_time": "10:00 AM UTC",
+        "profit_range": (1.5, 2.5)
     },
-    "2_reset": {"type": "reset", "signal_id": "2"},
+    "2_reset": {"type": "reset", "signal_id": 2},
 
     # 🔵 BTC (Package ID: 3)
     "3_warning": {"type": "warning"},
@@ -97,24 +99,30 @@ CONFIGS = {
         "image": IMAGE_3,
         "pair": "BTC (Bitcoin)",
         "open_time": "02:00 PM UTC To 04:00 PM UTC",
-        "start_time": "02:00 PM UTC"
+        "start_time": "02:00 PM UTC",
+        "profit_range": (1.2, 2.0)
     },
-    "3_reset": {"type": "reset", "signal_id": "3"}
+    "3_reset": {"type": "reset", "signal_id": 3}
 }
 
 def sync_site_profit(signal_id, profit_value):
     headers = {
         'X-BOT-SECRET': BOT_SECRET_KEY,
+        'Content-Type': 'application/json',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
     }
-    payload = {'signal_id': signal_id, 'profit': profit_value}
     
-    # Retry Mechanism to prevent network timeout issues
+    payload = {
+        'signal_id': int(signal_id), 
+        'profit': float(profit_value)
+    }
+    
     for attempt in range(3):
         try:
             res = requests.post(SITE_API_URL, json=payload, headers=headers, timeout=25)
             print(f"Site Sync Status: {res.status_code} - {res.text}")
-            return True
+            if res.status_code == 200:
+                return True
         except Exception as e:
             print(f"Attempt {attempt+1} - Site Sync Error: {e}")
     return False
@@ -123,15 +131,15 @@ async def send_telegram_post(key):
     cfg = CONFIGS.get(key)
     
     if not cfg:
-        print("Invalid Signal Key!")
+        print(f"Invalid Signal Key: '{key}'")
         return
 
-    # 🔄 ENTRY WINDOW EXPIRED RESET (පරණ තිබුණු Normal % එකට Revert වීම)
+    # 🔄 2-HOUR WINDOW EXPIRED RESET (පරණ තිබුණු Normal Default % එකට Revert වීම)
     if cfg["type"] == "reset":
-        sig_id = cfg['signal_id']
-        old_profit = RESET_PROFIT_MAP.get(sig_id, 0.5)
-        print(f"Executing 2-Hour Reset for Package ID: {sig_id} -> Reverting back to {old_profit}%")
-        sync_site_profit(sig_id, old_profit)
+        sig_id = int(cfg['signal_id'])
+        default_profit = RESET_PROFIT_MAP.get(sig_id, 1.0)
+        print(f"Executing 2-Hour Reset for Package ID: {sig_id} -> Reverting back to default {default_profit}%")
+        sync_site_profit(sig_id, default_profit)
         return
 
     bot = Bot(token=BOT_TOKEN)
@@ -151,8 +159,10 @@ async def send_telegram_post(key):
             print(f"Telegram Post Error [{key}]: {e}")
         return
 
-    # 📊 MAIN SIGNAL MESSAGE (WITH IMAGE + SITE SYNC)
-    random_profit = round(random.uniform(0.9, 2.0), 1)
+    # 📊 MAIN SIGNAL MESSAGE (WITH IMAGE + LIVE SITE SYNC)
+    min_p, max_p = cfg.get("profit_range", (1.2, 2.0))
+    random_profit = round(random.uniform(min_p, max_p), 1)
+    
     caption_text = get_main_signal_text(
         pair=cfg["pair"],
         open_time=cfg["open_time"],
@@ -161,7 +171,7 @@ async def send_telegram_post(key):
     )
 
     # Site DB Auto-Sync (Live Profit Setting)
-    signal_num = key.split('_')[0]
+    signal_num = int(key.split('_')[0])
     sync_site_profit(signal_num, random_profit)
 
     # Send Photo + Text to Telegram Channel
@@ -170,7 +180,7 @@ async def send_telegram_post(key):
             await bot.send_photo(
                 chat_id=CHANNEL_ID,
                 photo=photo,
-                caption=caption_text.encode('utf-8').decode('utf-8'),
+                caption=caption_text,
                 read_timeout=60,
                 write_timeout=60,
                 connect_timeout=60,
