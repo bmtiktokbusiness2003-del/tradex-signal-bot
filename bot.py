@@ -2,7 +2,6 @@ import sys
 import random
 import asyncio
 import requests
-import threading
 from telegram import Bot
 
 # ==========================================
@@ -46,6 +45,33 @@ Check your account → Prepare your capital → Stay connected → WAIT FOR THE 
 
 2-HOUR ENTRY WINDOW — DON’T MISS IT!"""
 
+SIGNAL_CLOSED_TEMPLATE = """⏳ SIGNAL CLOSED 
+━━━━━━━━━━━━━━━━━━
+✅ CURRENT SIGNAL COMPLETED
+━━━━━━━━━━━━━━━━━━
+The current trading signal has now ended successfully.
+Stay connected and get ready for the next trading opportunity.
+━━━━━━━━━━━━━━━━━━
+💰 PROFIT RELEASE UPDATE
+━━━━━━━━━━━━━━━━━━
+For members who entered the completed Copy Trade:
+💵 Your trading profits will be released within 24 HOURS after the completion of your trade.
+━━━━━━━━━━━━━━━━━━
+💸 CASHIER & WITHDRAWALS
+━━━━━━━━━━━━━━━━━━
+🏦 Cashier Opening Hours
+📅 Monday – Friday
+⏰ 08:00 UTC – 18:00 UTC
+During cashier operating hours, you can submit your withdrawal request.
+⚡ Withdrawal Processing Time:
+Withdrawals are processed and credited within 30 minutes during cashier operating hours.
+━━━━━━━━━━━━━━━━━━
+🙏 Thank you for trading with us.
+🔥 Stay Ready.
+📊 Watch for the Next Signal.
+🚀 TRADEX BROKERING & COPY TRADING
+Trade Smarter. Copy Better."""
+
 def get_main_signal_text(pair, open_time, start_time, profit):
     return f"""🚨 GET READY TRADEX COPY TRADING SIGNAL
 
@@ -78,8 +104,9 @@ CONFIGS = {
         "open_time": "07:00 AM UTC To 09:00 AM UTC",
         "start_time": "07:00 AM UTC",
         "signal_id": 1,
-        "profit_range": (0.50, 1.20)  # STRICT SAFETY LIMIT (0.5% - 1.2%)
+        "profit_range": (0.50, 1.20)
     },
+    "1_closed": {"type": "closed", "signal_id": 1},
     "1_reset": {"type": "reset", "signal_id": 1},
 
     # 🟡 Gold (Package ID: 2)
@@ -91,8 +118,9 @@ CONFIGS = {
         "open_time": "10:00 AM UTC To 12:00 PM UTC",
         "start_time": "10:00 AM UTC",
         "signal_id": 2,
-        "profit_range": (0.50, 1.20)  # STRICT SAFETY LIMIT (0.5% - 1.2%)
+        "profit_range": (0.50, 1.20)
     },
+    "2_closed": {"type": "closed", "signal_id": 2},
     "2_reset": {"type": "reset", "signal_id": 2},
 
     # 🔵 BTC (Package ID: 3)
@@ -104,8 +132,9 @@ CONFIGS = {
         "open_time": "02:00 PM UTC To 04:00 PM UTC",
         "start_time": "02:00 PM UTC",
         "signal_id": 3,
-        "profit_range": (0.50, 1.20)  # STRICT SAFETY LIMIT (0.5% - 1.2%)
+        "profit_range": (0.50, 1.20)
     },
+    "3_closed": {"type": "closed", "signal_id": 3},
     "3_reset": {"type": "reset", "signal_id": 3}
 }
 
@@ -115,7 +144,6 @@ def sync_site_profit(package_name, profit_value=0, action="update"):
     """
     profit_float = float(profit_value)
 
-    # SAFETY CAPPING FILTER (0.5% - 1.2%)
     if action == "update":
         if profit_float < 0.50:
             profit_float = 0.50
@@ -145,25 +173,14 @@ def sync_site_profit(package_name, profit_value=0, action="update"):
             print(f"Attempt {attempt+1} - Site Sync Error for {package_name}: {e}")
     return False
 
-def schedule_auto_reset(package_name, delay_seconds=7200):
-    """
-    2-HOUR (7200 Seconds) AUTO RESET TIMER
-    """
-    def do_reset():
-        print(f"⏰ [2-HOUR TIMER EXPIRED] Restoring '{package_name}' back to pre-signal Admin rate.")
-        sync_site_profit(package_name, profit_value=0, action="reset")
-
-    timer = threading.Timer(delay_seconds, do_reset)
-    timer.daemon = True
-    timer.start()
-    print(f"⏳ Auto-reset timer scheduled for '{package_name}' in {delay_seconds/3600} hours.")
-
 async def send_telegram_post(key):
     cfg = CONFIGS.get(key)
     
     if not cfg:
         print(f"Invalid Signal Key: '{key}'")
         return
+
+    bot = Bot(token=BOT_TOKEN)
 
     # 🔄 MANUAL RESET CALL VIA ARGUMENT
     if cfg["type"] == "reset":
@@ -173,7 +190,28 @@ async def send_telegram_post(key):
         sync_site_profit(pkg_name, profit_value=0, action="reset")
         return
 
-    bot = Bot(token=BOT_TOKEN)
+    # ⏳ SIGNAL CLOSED (EXECUTED AT EXACT 2-HOUR EXPIRY UTC TIME)
+    if cfg["type"] == "closed":
+        sig_id = int(cfg['signal_id'])
+        pkg_name = PACKAGE_MAP.get(sig_id, "Gold")
+        
+        # 1. Reset Site Interest Rate back to Pre-Signal Admin Rate
+        print(f"Executing Scheduled Auto-Reset to Admin Rate for: {pkg_name}")
+        sync_site_profit(pkg_name, profit_value=0, action="reset")
+        
+        # 2. Post Closed Message to Telegram Channel
+        try:
+            await bot.send_message(
+                chat_id=CHANNEL_ID,
+                text=SIGNAL_CLOSED_TEMPLATE,
+                read_timeout=60,
+                write_timeout=60,
+                connect_timeout=60
+            )
+            print(f"Closed Post [{key}] Sent Successfully for {pkg_name}!")
+        except Exception as e:
+            print(f"Telegram Closed Post Error [{key}]: {e}")
+        return
 
     # 🚨 WARNING MESSAGE (ONLY TEXT)
     if cfg["type"] == "warning":
@@ -194,7 +232,7 @@ async def send_telegram_post(key):
     sig_id = cfg["signal_id"]
     package_name = PACKAGE_MAP.get(sig_id, "Gold")
 
-    # Generate Safety Cap Profit (Strictly 0.5% - 1.2%)
+    # Generate Safety Cap Profit (0.5% - 1.2%)
     min_p, max_p = cfg.get("profit_range", (0.50, 1.20))
     random_profit = round(random.uniform(min_p, max_p), 2)
     
@@ -208,10 +246,7 @@ async def send_telegram_post(key):
     # 1. Update Signal Profit (And automatically backup Admin's current rate)
     sync_site_profit(package_name, random_profit, action="update")
 
-    # 2. Schedule 2-Hour Auto Reset Timer (7200 Seconds)
-    schedule_auto_reset(package_name, delay_seconds=7200)
-
-    # 3. Post to Telegram Channel
+    # 2. Post to Telegram Channel
     try:
         with open(cfg["image"], 'rb') as photo:
             await bot.send_photo(
