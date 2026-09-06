@@ -17,7 +17,7 @@ IMAGE_1 = "signal1.jpg.png.png"
 IMAGE_2 = "signal2.jpg.png.png"
 IMAGE_3 = "signal3.jpg.png.png"
 
-# Database Plan Names Mapping
+# Database Plan Names Mapping (Admin Panel Exact Names)
 PACKAGE_MAP = {
     1: "SOL",
     2: "Gold",
@@ -141,7 +141,7 @@ CONFIGS = {
 
 def sync_site_profit(package_name, profit_value=0, action="update"):
     """
-    STRICT API SYNC WITH DYNAMIC PRE-SIGNAL RESTORE
+    STRICT API SYNC FOR TRADEX ADMIN PANEL INTEREST RATE
     """
     profit_float = float(profit_value)
 
@@ -160,6 +160,7 @@ def sync_site_profit(package_name, profit_value=0, action="update"):
     payload = {
         'plan_name': str(package_name), 
         'profit': round(profit_float, 2),
+        'interest_rate': round(profit_float, 2), # Explicit Field Matching for Admin Panel
         'action': action,
         'api_key': API_KEY
     }
@@ -194,7 +195,7 @@ async def send_telegram_post(key):
     if cfg["type"] == "reset":
         sig_id = int(cfg['signal_id'])
         pkg_name = PACKAGE_MAP.get(sig_id, "Gold")
-        print(f"Executing Manual Reset to Admin Rate for: {pkg_name}")
+        print(f"Executing Manual Reset to Default Admin Rate for: {pkg_name}")
         sync_site_profit(pkg_name, profit_value=0, action="reset")
         return
 
@@ -203,8 +204,8 @@ async def send_telegram_post(key):
         sig_id = int(cfg['signal_id'])
         pkg_name = PACKAGE_MAP.get(sig_id, "Gold")
         
-        # 1. Reset Site Interest Rate back to Pre-Signal Admin Rate
-        print(f"Executing Scheduled Auto-Reset to Admin Rate for: {pkg_name}")
+        # 1. Reset Site Interest Rate back to Pre-Signal Default Rate (0.50%)
+        print(f"Executing Scheduled Auto-Reset to Default Rate for: {pkg_name}")
         sync_site_profit(pkg_name, profit_value=0, action="reset")
         
         # 2. Post Closed Message to Telegram Channel
@@ -251,10 +252,10 @@ async def send_telegram_post(key):
         profit=random_profit
     )
 
-    # 1. Update Signal Profit (And automatically backup Admin's current rate)
+    # 1. Update Site Admin Panel Interest Rate
     sync_site_profit(package_name, random_profit, action="update")
 
-    # 2. Post to Telegram Channel
+    # 2. Post Main Signal to Telegram Channel
     try:
         with open(cfg["image"], 'rb') as photo:
             await bot.send_photo(
