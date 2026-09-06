@@ -2,6 +2,7 @@ import sys
 import random
 import asyncio
 import requests
+import datetime
 from telegram import Bot
 
 # ==========================================
@@ -174,6 +175,13 @@ def sync_site_profit(package_name, profit_value=0, action="update"):
     return False
 
 async def send_telegram_post(key):
+    # 🗓️ WEEKEND CHECK FOR GOLD SIGNALS (Skip Saturday & Sunday)
+    # UTC weekday: 5 = Saturday, 6 = Sunday
+    today_weekday = datetime.datetime.now(datetime.timezone.utc).weekday()
+    if key.startswith("2_") and today_weekday in [5, 6]:
+        print(f"[SKIP] Gold Forex Market is Closed on Weekends (UTC Day: {today_weekday}). Skipped Signal Key: '{key}'")
+        return
+
     cfg = CONFIGS.get(key)
     
     if not cfg:
