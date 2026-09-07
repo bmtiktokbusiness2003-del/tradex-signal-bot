@@ -3,19 +3,20 @@ name: Tradex Telegram Signals Cron
 on:
   schedule:
     # 🔴 SOL Signals (07:00 AM - 09:00 AM UTC)
-    - cron: '0 6 * * *'   # 06:00 AM UTC - SOL Warning
-    - cron: '0 7 * * *'   # 07:00 AM UTC - SOL Main Signal
-    - cron: '0 9 * * *'   # 09:00 AM UTC - SOL SIGNAL CLOSED (Reset Site + Post Closed Msg)
+    - cron: '0 6 * * *'    # 06:00 AM UTC - SOL Warning
+    - cron: '0 7 * * *'    # 07:00 AM UTC - SOL Main Signal
+    - cron: '0 9 * * *'    # 09:00 AM UTC - SOL Closed & Gold Warning
 
     # 🟡 Gold Signals (10:00 AM - 12:00 PM UTC)
-    - cron: '0 9 * * *'   # 09:00 AM UTC - Gold Warning
-    - cron: '0 10 * * *'  # 10:00 AM UTC - Gold Main Signal
-    - cron: '0 12 * * *'  # 12:00 PM UTC - Gold SIGNAL CLOSED (Reset Site + Post Closed Msg)
+    - cron: '0 10 * * *'   # 10:00 AM UTC - Gold Main Signal
+    - cron: '0 12 * * *'   # 12:00 PM UTC - Gold SIGNAL CLOSED
 
     # 🔵 BTC Signals (02:00 PM - 04:00 PM UTC)
-    - cron: '0 13 * * *'  # 01:00 PM UTC - BTC Warning
-    - cron: '0 14 * * *'  # 02:00 PM UTC - BTC Main Signal
-    - cron: '0 16 * * *'  # 04:00 PM UTC - BTC SIGNAL CLOSED (Reset Site + Post Closed Msg)
+    - cron: '0 13 * * *'   # 01:00 PM UTC - BTC Warning
+    - cron: '0 14 * * *'   # 02:00 PM UTC - BTC Main Signal
+    - cron: '0 16 * * *'   # 04:00 PM UTC - BTC SIGNAL CLOSED
+
+  workflow_dispatch:        # Manual trigger button එක GitHub UI එකට එකතු කිරීම
 
 jobs:
   run-signal:
@@ -42,15 +43,14 @@ jobs:
         if: github.event.schedule == '0 7 * * *'
         run: python telegram_signal_bot.py 1_main
 
-      - name: SOL Closed Signal
+      # 🔴 SOL Closed & 🟡 Gold Warning (09:00 AM UTC - Sequential Execution)
+      - name: SOL Closed & Gold Warning Execution
         if: github.event.schedule == '0 9 * * *'
-        run: python telegram_signal_bot.py 1_closed
+        run: |
+          python telegram_signal_bot.py 1_closed
+          python telegram_signal_bot.py 2_warning
 
       # 🟡 Gold Execution
-      - name: Gold Warning
-        if: github.event.schedule == '0 9 * * *'
-        run: python telegram_signal_bot.py 2_warning
-
       - name: Gold Main Signal
         if: github.event.schedule == '0 10 * * *'
         run: python telegram_signal_bot.py 2_main
