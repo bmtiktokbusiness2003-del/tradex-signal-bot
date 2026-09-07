@@ -11,13 +11,13 @@ from telegram import Bot
 BOT_TOKEN = "8630297168:AAGqMdxODDoGXuVO9AQcIceQOt6-MaRutc4"
 CHANNEL_ID = -1003962679297
 SITE_API_URL = "https://tradex.forex/api/update-package-profit"
-API_KEY = "TradexAutoSync2026SecureKey"
+BOT_SECRET = "TRADEX_SECRET_BOT_KEY_2026"  # ලාරාවෙල් බෑකෙන්ඩ් එකේ තියෙන රහස් කී එක
 
 IMAGE_1 = "signal1.jpg.png.png"
 IMAGE_2 = "signal2.jpg.png.png"
 IMAGE_3 = "signal3.jpg.png.png"
 
-# Database Plan Names Mapping (Admin Panel Exact Names)
+# Database Plan Names Mapping (රفرنس සඳහා පමණි)
 PACKAGE_MAP = {
     1: "SOL",
     2: "Gold",
@@ -139,9 +139,9 @@ CONFIGS = {
     "3_reset": {"type": "reset", "signal_id": 3}
 }
 
-def sync_site_profit(package_name, profit_value=0, action="update"):
+def sync_site_profit(signal_id, profit_value=0, action="update"):
     """
-    STRICT API SYNC FOR TRADEX ADMIN PANEL INTEREST RATE
+    STRICT API SYNC FOR TRADEX ADMIN PANEL INTEREST RATE VIA SIGNAL_ID
     """
     profit_float = float(profit_value)
 
@@ -153,31 +153,27 @@ def sync_site_profit(package_name, profit_value=0, action="update"):
 
     headers = {
         'Content-Type': 'application/json',
-        'X-Api-Key': API_KEY,
+        'X-BOT-SECRET': BOT_SECRET,  # ලාරාවෙල් කෝඩ් එක බලාපොරොත්තු වන නිවැරදි හෙඩර් එක
         'User-Agent': 'Mozilla/5.0'
     }
     
     payload = {
-        'plan_name': str(package_name), 
-        'profit': round(profit_float, 2),
-        'interest_rate': round(profit_float, 2), # Explicit Field Matching for Admin Panel
-        'action': action,
-        'api_key': API_KEY
+        'signal_id': int(signal_id),  # 1, 2, හෝ 3 (ලාරාවෙල් එකට යන අගය)
+        'profit': round(profit_float, 2)
     }
     
     for attempt in range(3):
         try:
             res = requests.post(SITE_API_URL, json=payload, headers=headers, timeout=25)
-            print(f"[{action.upper()}] Site Sync Status for {package_name}: {res.status_code} - {res.text}")
+            print(f"[{action.upper()}] Site Sync Status for Signal ID {signal_id}: {res.status_code} - {res.text}")
             if res.status_code == 200:
                 return True
         except Exception as e:
-            print(f"Attempt {attempt+1} - Site Sync Error for {package_name}: {e}")
+            print(f"Attempt {attempt+1} - Site Sync Error for Signal ID {signal_id}: {e}")
     return False
 
 async def send_telegram_post(key):
     # 🗓️ WEEKEND CHECK FOR GOLD SIGNALS (Skip Saturday & Sunday)
-    # UTC weekday: 5 = Saturday, 6 = Sunday
     today_weekday = datetime.datetime.now(datetime.timezone.utc).weekday()
     if key.startswith("2_") and today_weekday in [5, 6]:
         print(f"[SKIP] Gold Forex Market is Closed on Weekends (UTC Day: {today_weekday}). Skipped Signal Key: '{key}'")
@@ -194,19 +190,17 @@ async def send_telegram_post(key):
     # 🔄 MANUAL RESET CALL VIA ARGUMENT
     if cfg["type"] == "reset":
         sig_id = int(cfg['signal_id'])
-        pkg_name = PACKAGE_MAP.get(sig_id, "Gold")
-        print(f"Executing Manual Reset to Default Admin Rate for: {pkg_name}")
-        sync_site_profit(pkg_name, profit_value=0, action="reset")
+        print(f"Executing Manual Reset to Default Admin Rate (0.50%) for Signal ID: {sig_id}")
+        sync_site_profit(sig_id, profit_value=0.50, action="update")
         return
 
     # ⏳ SIGNAL CLOSED (EXECUTED AT EXACT 2-HOUR EXPIRY UTC TIME)
     if cfg["type"] == "closed":
         sig_id = int(cfg['signal_id'])
-        pkg_name = PACKAGE_MAP.get(sig_id, "Gold")
         
         # 1. Reset Site Interest Rate back to Pre-Signal Default Rate (0.50%)
-        print(f"Executing Scheduled Auto-Reset to Default Rate for: {pkg_name}")
-        sync_site_profit(pkg_name, profit_value=0, action="reset")
+        print(f"Executing Scheduled Auto-Reset to Default Rate (0.50%) for Signal ID: {sig_id}")
+        sync_site_profit(sig_id, profit_value=0.50, action="update")
         
         # 2. Post Closed Message to Telegram Channel
         try:
@@ -217,7 +211,7 @@ async def send_telegram_post(key):
                 write_timeout=60,
                 connect_timeout=60
             )
-            print(f"Closed Post [{key}] Sent Successfully for {pkg_name}!")
+            print(f"Closed Post [{key}] Sent Successfully for Signal ID {sig_id}!")
         except Exception as e:
             print(f"Telegram Closed Post Error [{key}]: {e}")
         return
@@ -239,7 +233,6 @@ async def send_telegram_post(key):
 
     # 📊 MAIN SIGNAL MESSAGE
     sig_id = cfg["signal_id"]
-    package_name = PACKAGE_MAP.get(sig_id, "Gold")
 
     # Generate Safety Cap Profit (0.5% - 1.2%)
     min_p, max_p = cfg.get("profit_range", (0.50, 1.20))
@@ -252,8 +245,8 @@ async def send_telegram_post(key):
         profit=random_profit
     )
 
-    # 1. Update Site Admin Panel Interest Rate
-    sync_site_profit(package_name, random_profit, action="update")
+    # 1. Update Site Admin Panel Interest Rate via API using signal_id
+    sync_site_profit(sig_id, random_profit, action="update")
 
     # 2. Post Main Signal to Telegram Channel
     try:
