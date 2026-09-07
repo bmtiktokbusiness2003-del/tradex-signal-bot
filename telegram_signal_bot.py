@@ -46,32 +46,31 @@ Check your account → Prepare your capital → Stay connected → WAIT FOR THE 
 
 2-HOUR ENTRY WINDOW — DON’T MISS IT!"""
 
-SIGNAL_CLOSED_TEMPLATE = """⏳ SIGNAL CLOSED 
-━━━━━━━━━━━━━━━━━━
-✅ CURRENT SIGNAL COMPLETED
-━━━━━━━━━━━━━━━━━━
-The current trading signal has now ended successfully.
-Stay connected and get ready for the next trading opportunity.
-━━━━━━━━━━━━━━━━━━
-💰 PROFIT RELEASE UPDATE
-━━━━━━━━━━━━━━━━━━
-For members who entered the completed Copy Trade:
-💵 Your trading profits will be released within 24 HOURS after the completion of your trade.
-━━━━━━━━━━━━━━━━━━
-💸 CASHIER & WITHDRAWALS
-━━━━━━━━━━━━━━━━━━
-🏦 Cashier Opening Hours
+SIGNAL_CLOSED_TEMPLATE = """⏳ <b>SIGNAL CLOSED & COMPLETED</b>
+━━━━━━━━━━━━━━━━━━━━━
+✅ The current trading signal has now successfully ended. 
+Stay connected and get ready for the next upcoming trading opportunity!
+
+💰 <b>PROFIT RELEASE UPDATE</b>
+━━━━━━━━━━━━━━━━━━━━━
+For members who participated in this completed Copy Trade:
+💵 Your trading profits will be credited and released within <b>24 HOURS</b> after the trade completion.
+
+💸 <b>CASHIER & WITHDRAWALS</b>
+━━━━━━━━━━━━━━━━━━━━━
+🏦 <b>Cashier Operating Hours:</b>
 📅 Monday – Friday
 ⏰ 08:00 UTC – 18:00 UTC
-During cashier operating hours, you can submit your withdrawal request.
-⚡ Withdrawal Processing Time:
-Withdrawals are processed and credited within 30 minutes during cashier operating hours.
-━━━━━━━━━━━━━━━━━━
+
+During these hours, you can submit your withdrawal requests freely. 
+⚡ <b>Withdrawal Processing Time:</b> Processed and credited within <b>30 minutes</b> during operating hours.
+
+━━━━━━━━━━━━━━━━━━━━━
 🙏 Thank you for trading with us.
-🔥 Stay Ready.
-📊 Watch for the Next Signal.
-🚀 TRADEX BROKERING & COPY TRADING
-Trade Smarter. Copy Better."""
+🔥 Stay Ready. 📊 Watch for the Next Signal.
+
+🚀 <b>TRADEX BROKERING & COPY TRADING</b>
+<i>Trade Smarter. Copy Better.</i>"""
 
 def get_main_signal_text(pair, open_time, start_time, profit):
     return f"""🚨 GET READY TRADEX COPY TRADING SIGNAL
@@ -207,6 +206,7 @@ async def send_telegram_post(key):
             await bot.send_message(
                 chat_id=CHANNEL_ID,
                 text=SIGNAL_CLOSED_TEMPLATE,
+                parse_mode='HTML',
                 read_timeout=60,
                 write_timeout=60,
                 connect_timeout=60
