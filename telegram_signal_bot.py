@@ -11,17 +11,17 @@ from telegram import Bot
 BOT_TOKEN = "8630297168:AAGqMdxODDoGXuVO9AQcIceQOt6-MaRutc4"
 CHANNEL_ID = -1003962679297
 SITE_API_URL = "https://tradex.forex/api/update-package-profit"
-BOT_SECRET = "TRADEX_SECRET_BOT_KEY_2026"  # ලාරාවෙල් බෑකෙන්ඩ් එකේ තියෙන රහස් කී එක
+BOT_SECRET = "TRADEX_SECRET_BOT_KEY_2026"
 
 IMAGE_1 = "signal1.jpg.png.png"
 IMAGE_2 = "signal2.jpg.png.png"
 IMAGE_3 = "signal3.jpg.png.png"
 
-# Database Plan Names Mapping (රفرنس සඳහා පමණි)
+# Database Plan Names Mapping (Direct Database ID Match)
 PACKAGE_MAP = {
-    1: "SOL",
-    2: "Gold",
-    3: "BTC"
+    2: "SOL",
+    8: "Gold",
+    1: "BTC"
 }
 
 # ==========================================
@@ -95,7 +95,7 @@ Trade Smarter. Copy Better.
 Trade Open Two Hours...."""
 
 CONFIGS = {
-    # 🔴 SOL (Package ID: 1)
+    # 🔴 SOL (Database ID: 2)
     "1_warning": {"type": "warning"},
     "1_main": {
         "type": "main", 
@@ -103,13 +103,13 @@ CONFIGS = {
         "pair": "SOL (Solana)",
         "open_time": "07:00 AM UTC To 09:00 AM UTC",
         "start_time": "07:00 AM UTC",
-        "signal_id": 1,
+        "signal_id": 2,  # Database ID for SOL
         "profit_range": (0.50, 1.20)
     },
-    "1_closed": {"type": "closed", "signal_id": 1},
-    "1_reset": {"type": "reset", "signal_id": 1},
+    "1_closed": {"type": "closed", "signal_id": 2},
+    "1_reset": {"type": "reset", "signal_id": 2},
 
-    # 🟡 Gold (Package ID: 2)
+    # 🟡 Gold (Database ID: 8)
     "2_warning": {"type": "warning"},
     "2_main": {
         "type": "main", 
@@ -117,13 +117,13 @@ CONFIGS = {
         "pair": "XAU/USD (Gold)",
         "open_time": "10:00 AM UTC To 12:00 PM UTC",
         "start_time": "10:00 AM UTC",
-        "signal_id": 2,
+        "signal_id": 8,  # Database ID for Gold
         "profit_range": (0.50, 1.20)
     },
-    "2_closed": {"type": "closed", "signal_id": 2},
-    "2_reset": {"type": "reset", "signal_id": 2},
+    "2_closed": {"type": "closed", "signal_id": 8},
+    "2_reset": {"type": "reset", "signal_id": 8},
 
-    # 🔵 BTC (Package ID: 3)
+    # 🔵 BTC (Database ID: 1)
     "3_warning": {"type": "warning"},
     "3_main": {
         "type": "main", 
@@ -131,17 +131,14 @@ CONFIGS = {
         "pair": "BTC (Bitcoin)",
         "open_time": "02:00 PM UTC To 04:00 PM UTC",
         "start_time": "02:00 PM UTC",
-        "signal_id": 3,
+        "signal_id": 1,  # Database ID for BTC
         "profit_range": (0.50, 1.20)
     },
-    "3_closed": {"type": "closed", "signal_id": 3},
-    "3_reset": {"type": "reset", "signal_id": 3}
+    "3_closed": {"type": "closed", "signal_id": 1},
+    "3_reset": {"type": "reset", "signal_id": 1}
 }
 
 def sync_site_profit(signal_id, profit_value=0, action="update"):
-    """
-    STRICT API SYNC FOR TRADEX ADMIN PANEL INTEREST RATE VIA SIGNAL_ID
-    """
     profit_float = float(profit_value)
 
     if action == "update":
@@ -152,12 +149,12 @@ def sync_site_profit(signal_id, profit_value=0, action="update"):
 
     headers = {
         'Content-Type': 'application/json',
-        'X-BOT-SECRET': BOT_SECRET,  # ලාරාවෙල් කෝඩ් එක බලාපොරොත්තු වන නිවැරදි හෙඩර් එක
+        'X-BOT-SECRET': BOT_SECRET,
         'User-Agent': 'Mozilla/5.0'
     }
     
     payload = {
-        'signal_id': int(signal_id),  # 1, 2, හෝ 3 (ලාරාවෙල් එකට යන අගය)
+        'signal_id': int(signal_id),
         'profit': round(profit_float, 2)
     }
     
@@ -172,7 +169,6 @@ def sync_site_profit(signal_id, profit_value=0, action="update"):
     return False
 
 async def send_telegram_post(key):
-    # 🗓️ WEEKEND CHECK FOR GOLD SIGNALS (Skip Saturday & Sunday)
     today_weekday = datetime.datetime.now(datetime.timezone.utc).weekday()
     if key.startswith("2_") and today_weekday in [5, 6]:
         print(f"[SKIP] Gold Forex Market is Closed on Weekends (UTC Day: {today_weekday}). Skipped Signal Key: '{key}'")
@@ -186,22 +182,17 @@ async def send_telegram_post(key):
 
     bot = Bot(token=BOT_TOKEN)
 
-    # 🔄 MANUAL RESET CALL VIA ARGUMENT
     if cfg["type"] == "reset":
         sig_id = int(cfg['signal_id'])
         print(f"Executing Manual Reset to Default Admin Rate (0.50%) for Signal ID: {sig_id}")
         sync_site_profit(sig_id, profit_value=0.50, action="update")
         return
 
-    # ⏳ SIGNAL CLOSED (EXECUTED AT EXACT 2-HOUR EXPIRY UTC TIME)
     if cfg["type"] == "closed":
         sig_id = int(cfg['signal_id'])
-        
-        # 1. Reset Site Interest Rate back to Pre-Signal Default Rate (0.50%)
         print(f"Executing Scheduled Auto-Reset to Default Rate (0.50%) for Signal ID: {sig_id}")
         sync_site_profit(sig_id, profit_value=0.50, action="update")
         
-        # 2. Post Closed Message to Telegram Channel
         try:
             await bot.send_message(
                 chat_id=CHANNEL_ID,
@@ -216,7 +207,6 @@ async def send_telegram_post(key):
             print(f"Telegram Closed Post Error [{key}]: {e}")
         return
 
-    # 🚨 WARNING MESSAGE (ONLY TEXT)
     if cfg["type"] == "warning":
         try:
             await bot.send_message(
@@ -231,10 +221,8 @@ async def send_telegram_post(key):
             print(f"Telegram Post Error [{key}]: {e}")
         return
 
-    # 📊 MAIN SIGNAL MESSAGE
     sig_id = cfg["signal_id"]
 
-    # Generate Safety Cap Profit (0.5% - 1.2%)
     min_p, max_p = cfg.get("profit_range", (0.50, 1.20))
     random_profit = round(random.uniform(min_p, max_p), 2)
     
@@ -245,10 +233,8 @@ async def send_telegram_post(key):
         profit=random_profit
     )
 
-    # 1. Update Site Admin Panel Interest Rate via API using signal_id
     sync_site_profit(sig_id, random_profit, action="update")
 
-    # 2. Post Main Signal to Telegram Channel
     try:
         with open(cfg["image"], 'rb') as photo:
             await bot.send_photo(
