@@ -36,38 +36,37 @@ jobs:
 
       # 🔴 SOL Execution
       - name: SOL Warning
-        if: github.event.schedule == '0 6 * * *'
+        if: github.event.schedule == '0 6 * * *' || github.event_name == 'workflow_dispatch'
         run: python telegram_signal_bot.py 1_warning
 
       - name: SOL Main Signal
-        if: github.event.schedule == '0 7 * * *'
+        if: github.event.schedule == '0 7 * * *' || github.event_name == 'workflow_dispatch'
         run: python telegram_signal_bot.py 1_main
 
-      # 🔴 SOL Closed & 🟡 Gold Warning (09:00 AM UTC - Sequential Execution)
-      - name: SOL Closed & Gold Warning Execution
-        if: github.event.schedule == '0 9 * * *'
+      - name: SOL Closed & Gold Warning
+        if: github.event.schedule == '0 9 * * *' || github.event_name == 'workflow_dispatch'
         run: |
           python telegram_signal_bot.py 1_closed
           python telegram_signal_bot.py 2_warning
 
       # 🟡 Gold Execution
       - name: Gold Main Signal
-        if: github.event.schedule == '0 10 * * *'
+        if: github.event.schedule == '0 10 * * *' || github.event_name == 'workflow_dispatch'
         run: python telegram_signal_bot.py 2_main
 
       - name: Gold Closed Signal
-        if: github.event.schedule == '0 12 * * *'
+        if: github.event.schedule == '0 12 * * *' || github.event_name == 'workflow_dispatch'
         run: python telegram_signal_bot.py 2_closed
 
       # 🔵 BTC Execution
       - name: BTC Warning
-        if: github.event.schedule == '0 13 * * *'
+        if: github.event.schedule == '0 13 * * *' || github.event_name == 'workflow_dispatch'
         run: python telegram_signal_bot.py 3_warning
 
       - name: BTC Main Signal
-        if: github.event.schedule == '0 14 * * *'
+        if: github.event.schedule == '0 14 * * *' || github.event_name == 'workflow_dispatch'
         run: python telegram_signal_bot.py 3_main
 
       - name: BTC Closed Signal
-        if: github.event.schedule == '0 16 * * *'
+        if: github.event.schedule == '0 16 * * *' || github.event_name == 'workflow_dispatch'
         run: python telegram_signal_bot.py 3_closed
