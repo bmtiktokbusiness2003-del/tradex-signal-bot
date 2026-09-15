@@ -17,13 +17,6 @@ IMAGE_1 = "signal1.jpg.png.png"
 IMAGE_2 = "signal2.jpg.png.png"
 IMAGE_3 = "signal3.jpg.png.png"
 
-# Database Plan Names Mapping (Direct Database ID Match)
-PACKAGE_MAP = {
-    2: "SOL",
-    8: "Gold",
-    1: "BTC"
-}
-
 # ==========================================
 # 📄 TEMPLATES
 # ==========================================
@@ -103,8 +96,8 @@ CONFIGS = {
         "pair": "SOL (Solana)",
         "open_time": "07:00 AM UTC To 09:00 AM UTC",
         "start_time": "07:00 AM UTC",
-        "signal_id": 2,  # Database ID for SOL
-        "profit_range": (0.50, 1.20)
+        "signal_id": 2,  
+        "profit_range": (0.70, 1.20)  # Signal Range: 0.70% to 1.20%
     },
     "1_closed": {"type": "closed", "signal_id": 2},
     "1_reset": {"type": "reset", "signal_id": 2},
@@ -117,8 +110,8 @@ CONFIGS = {
         "pair": "XAU/USD (Gold)",
         "open_time": "10:00 AM UTC To 12:00 PM UTC",
         "start_time": "10:00 AM UTC",
-        "signal_id": 8,  # Database ID for Gold
-        "profit_range": (0.50, 1.20)
+        "signal_id": 8,  
+        "profit_range": (0.70, 1.20)  # Signal Range: 0.70% to 1.20%
     },
     "2_closed": {"type": "closed", "signal_id": 8},
     "2_reset": {"type": "reset", "signal_id": 8},
@@ -131,8 +124,8 @@ CONFIGS = {
         "pair": "BTC (Bitcoin)",
         "open_time": "02:00 PM UTC To 04:00 PM UTC",
         "start_time": "02:00 PM UTC",
-        "signal_id": 1,  # Database ID for BTC
-        "profit_range": (0.50, 1.20)
+        "signal_id": 1,  
+        "profit_range": (0.70, 1.20)  # Signal Range: 0.70% to 1.20%
     },
     "3_closed": {"type": "closed", "signal_id": 1},
     "3_reset": {"type": "reset", "signal_id": 1}
@@ -140,12 +133,6 @@ CONFIGS = {
 
 def sync_site_profit(signal_id, profit_value=0, action="update"):
     profit_float = float(profit_value)
-
-    if action == "update":
-        if profit_float < 0.50:
-            profit_float = 0.50
-        elif profit_float > 1.20:
-            profit_float = 1.20
 
     headers = {
         'Content-Type': 'application/json',
@@ -155,7 +142,8 @@ def sync_site_profit(signal_id, profit_value=0, action="update"):
     
     payload = {
         'signal_id': int(signal_id),
-        'profit': round(profit_float, 2)
+        'profit': round(profit_float, 2),
+        'action': action
     }
     
     for attempt in range(3):
@@ -184,14 +172,14 @@ async def send_telegram_post(key):
 
     if cfg["type"] == "reset":
         sig_id = int(cfg['signal_id'])
-        print(f"Executing Manual Reset to Default Admin Rate (0.50%) for Signal ID: {sig_id}")
-        sync_site_profit(sig_id, profit_value=0.50, action="update")
+        print(f"Executing Manual Reset to Default Rate (0.50%) for Signal ID: {sig_id}")
+        sync_site_profit(sig_id, profit_value=0.50, action="reset") # Reset back to 0.50
         return
 
     if cfg["type"] == "closed":
         sig_id = int(cfg['signal_id'])
         print(f"Executing Scheduled Auto-Reset to Default Rate (0.50%) for Signal ID: {sig_id}")
-        sync_site_profit(sig_id, profit_value=0.50, action="update")
+        sync_site_profit(sig_id, profit_value=0.50, action="closed") # Close/Reset back to 0.50
         
         try:
             await bot.send_message(
@@ -223,7 +211,7 @@ async def send_telegram_post(key):
 
     sig_id = cfg["signal_id"]
 
-    min_p, max_p = cfg.get("profit_range", (0.50, 1.20))
+    min_p, max_p = cfg.get("profit_range", (0.70, 1.20))
     random_profit = round(random.uniform(min_p, max_p), 2)
     
     caption_text = get_main_signal_text(
